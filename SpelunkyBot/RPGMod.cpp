@@ -1,5 +1,6 @@
 #include "stdafx.h"
-#include "RPGMod.h"
+#include "rpgmod.h"
+#include "basictools.h"
 
 
 DLLExport struct
@@ -16,14 +17,11 @@ DLLExport struct
 	struct
 	{
 		int timer = 1;
-		UINT eType = 1;
 	} possessed;
 }
 player;
 
 const UINT expNeeded[13] = { 100, 250, 600, 1000, 2500, 6000, 10000, 25000, 60000, 100000, 250000, 600000, 1000000 };
-
-enum stat_t { CON = 0, STR, DEX, MAG, CHR, PER };
 
 DLLExport void levelUp(stat_t stat)
 {
@@ -59,7 +57,7 @@ DLLExport void updateLoop(LPVOID BASE)
 	// Write Player Stats
 	LPWSTR buffer = new WCHAR[80];
 	swprintf(buffer, 80, L"O");
-	setTextColor(writeText(BASE, buffer, 0.8f, 1.0f, 0, 1.5f), 0, 0, 0);
+	setTextColor(writeText(BASE, buffer, 0.85f, 1.0f, 0, 1.6f), 0, 0, 0);
 	swprintf(buffer, 80, L"%d", player.NEXTLEVEL);
 	setTextColor(writeText(BASE, buffer, 0.8f, 1.0f, 0, 1.0f), 220, 240, 220);
 	swprintf(buffer, 80, L"%d / %d", player.MANA, 100);
@@ -78,58 +76,98 @@ DLLExport void updateLoop(LPVOID BASE)
 			setTextColor(color, 230, 230, 230);
 		}
 	}
+	// Console logging
+	std::queue<LPCWSTR> log = debug::log;
+	float logY = 10;
+	while (!log.empty())
+	{
+		writeText(BASE, log.front(), 0.5f, logY, 1, 0.6f);
+		log.pop();
+		logY -= 0.7f;
+	}
 }
 
 DLLExport void AIUpdate(LPVOID BASE, LPVOID entity)
 {
-	LPVOID controls = offset(entity, 0x224);
-	if (player.possessed.timer == 0 || player.possessed.eType == 0 || controls == nullptr)
+	LPVOID controls = offset(entity, 0x15C);
+	if (player.possessed.timer == 0 || controls == nullptr)
 	{
 		return;
 	}
 
 	LPVOID gameBase = offset(BASE, 0x1384B4);
-	LPVOID plr = offset(BASE, 0x440684);
-	// Movement
-	float &velocityX = offset<FLOAT>(entity, 0x244);
-	float &velocityY = offset<FLOAT>(entity, 0x248);
-	// Move left/right
-	if (offset<INT>(controls, 0x1C) < -20 || offset<INT>(controls, 0x1C) > 20)
+	LPVOID plr = offset(gameBase, 0x440684);
+
+	// Make enemy harmless to player
+	offset<BYTE>(entity, 0x1F3) = 1;
+	// Stun player
+	offset<BYTE>(plr, 0x211) = 1;
+	offset<INT>(plr, 0x184) = 6;
+	// Set camera target and remove offscreen timer
+	offset(offset(BASE, 0x138558), 0x30) = entity;
+	offset<INT>(plr, 0x27C) = 0;
+
+	entity_t eType = offset<entity_t>(entity, 0x0C);
+
+	if (eType == SNAKE)
 	{
-		int direction = (offset<INT>(controls, 0x1C) > 0) ? 1 : -1;
-		float newVelocityX = offset<FLOAT>(entity, 0x1D0);
-		velocityX = direction * newVelocityX;
-		offset<BOOL>(entity, 0x9D) = (direction < 0);
-	}
-	else
-	{
-		velocityX = 0.0f;
-	}
-	// Friction
-	if (velocityX != 0.0f)
-	{
-		float direction = velocityX / abs(velocityX);
-		float friction = direction * offset<FLOAT>(entity, 0x1C4);
-		if (direction * friction > direction * velocityX)
+		offset<FLOAT>(entity, 0x244) = 0.0f;
+		if (abs(offset<INT>(controls, 0x1C)) > 20)
 		{
-			velocityX = 0.0f;
-		}
-		else
-		{
-			velocityX = velocityX - friction;
+			offset<BYTE>(entity, 0x9D) = offset<INT>(controls, 0x1C) < 0;
 		}
 	}
-	// Jump
-	if (offset<BOOL>(controls, 0x00) && offset<BOOL>(entity, 0x204))
+
+	if (eType == BAT || eType == SPIDER)
 	{
-		offset<BOOL>(entity, 0x204) = FALSE;
-		velocityY = 1.20f * offset<FLOAT>(entity, 0x1E0);
+		// "Trigger" entity
+		if (offset<BYTE>(entity, 0x207))
+		{
+			offset<BYTE>(entity, 0x207) = 0;
+			offset<FLOAT>(entity, 0x34) -= 0.1f;
+		}
+		// Remove targeting timer
+		offset<INT>(entity, 0x270) = 3600;
+		// Check for target, create one if nonexistent
+		LPVOID target = offset(entity, 0x26C);
+		if (offset(entity, 0x26C) == nullptr || offset(entity, 0x26C) == plr)
+		{
+			target = spawnEntity(BASE, offset<FLOAT>(entity, 0x30), offset<FLOAT>(entity, 0x34), WEB, 1);
+			offset<BYTE>(target, 0x1F1) = 0;
+			offset(entity, 0x26C) = target;
+		}
+		// Move target based on controls
+		offset<FLOAT>(target, 0x30) = offset<FLOAT>(entity, 0x30) + 0.5f * offset<INT>(controls, 0x1C);
+		offset<FLOAT>(target, 0x34) = offset<FLOAT>(entity, 0x34) + 0.5f * offset<INT>(controls, 0x20);
+		// If spider, has jump
+		if (eType == SPIDER)
+		{
+			int &timer = offset<INT>(entity, 0x154);
+			timer = (timer > 30) ? 30 : (timer < 10) ? 10 : timer;
+			if (offset<BYTE>(controls, 0x00) && timer == 10)
+			{
+				timer = 0;
+			}
+			if (offset<INT>(controls, 0x20) > 20 && offset<FLOAT>(entity, 0x248) > 0.199)
+			{
+				offset<FLOAT>(entity, 0x244) *= 0.5f;
+			}
+			if (offset<INT>(controls, 0x20) < -20 && offset<FLOAT>(entity, 0x248) > 0.199)
+			{
+				offset<FLOAT>(entity, 0x244) *= 1.3f;
+				offset<FLOAT>(entity, 0x248) *= 0.4f;
+			}
+		}
+		// Check if entity is dead
+		if (offset<INT>(entity, 0x140) <= 0)
+		{
+			offset<BYTE>(target, 0x9C) = 1;
+		}
 	}
-	// If stuck, don't move
-	if (offset<BOOL>(entity, 0x1FA))
+	// Explode if triggered
+	if (offset<BYTE>(controls, 0x01))
 	{
-		velocityX = 0.0f;
-		velocityY = 0.0f;
+		triggerExplosion(BASE, offset<FLOAT>(entity, 0x30), offset<FLOAT>(entity, 0x34), 0, BOMB);
 	}
 }
 
@@ -454,60 +492,4 @@ DLLExport void collectItem(UINT itemID)
 DLLExport void collectJelly()
 {
 	levelUp(CON);
-}
-
-DLLExport int spawnEntity(LPVOID BASE, float x, float y, entity_t eType, char onList)
-{
-	DWORD func = (DWORD)BASE + 0x6FD10;
-	DWORD gameBase = offset<DWORD>(BASE, 0x1384B4);
-	DWORD dwOnList = (DWORD)onList;
-	int entity = NULL;
-	__asm
-	{
-		push ecx;
-		mov ecx, gameBase;
-		mov eax, func;
-		push dwOnList;
-		push eType;
-		push y;
-		push x;
-		call eax;
-		pop ecx;
-		mov entity, eax;
-	}
-	return entity;
-}
-
-DLLExport float *writeText(LPVOID BASE, LPCWSTR pText, float x, float y, char rAlign, float fontSize)
-{
-	DWORD func = (DWORD)BASE + 0xE8EC0;
-	DWORD graphicsBase = offset<DWORD>(offset(BASE, 0x1384B4), 0x50);
-	DWORD dwAlign = (DWORD)rAlign;
-	DWORD *textColor = nullptr;
-	__asm
-	{
-		pushad;
-
-		push 0;
-		push fontSize;
-		push dwAlign;
-		push y;
-		push x;
-		push pText;
-		mov edi, graphicsBase;
-		mov eax, func;
-		call eax;
-
-		mov textColor, eax;
-		popad;
-	}
-	
-	return (float *)((BYTE *)textColor + 0x1682C);
-}
-
-DLLExport void setTextColor(float *colorPtr, int red, int green, int blue)
-{
-	colorPtr[0] = red / 255.0f;
-	colorPtr[1] = green / 255.0f;
-	colorPtr[2] = blue / 255.0f;
 }

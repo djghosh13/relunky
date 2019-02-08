@@ -153,18 +153,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="EnemyAI.h" />
-    <ClInclude Include="EntityTypes.h" />
-    <ClInclude Include="RPGMod.h" />
-    <ClInclude Include="Spelunky.h" />
+    <ClInclude Include="basictools.h" />
+    <ClInclude Include="enemyai.h" />
+    <ClInclude Include="rpgmod.h" />
+    <ClInclude Include="spelunky.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="basictools.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="EnemyAI.cpp" />
-    <ClCompile Include="RPGMod.cpp" />
-    <ClCompile Include="Spelunky.cpp" />
+    <ClCompile Include="enemyai.cpp" />
+    <ClCompile Include="rpgmod.cpp" />
+    <ClCompile Include="spelunky.cpp" />
     <ClCompile Include="SpelunkyBot.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -174,7 +175,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="AllEntities.txt" />
+    <None Include="allentities.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

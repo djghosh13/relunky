@@ -1,6 +1,5 @@
 // SpelunkyMemory.cpp: This file handles writing and reading from the program memory
 
-// #include "pch.h"
 #include "stdafx.h"
 #include "Spelunky.h"
 
@@ -111,6 +110,7 @@ void Spelunky::inject_call(Address from, size_t fromSize, FunctionCall fncall, c
 	if (codeLocation == -1)
 	{
 		read_memory(from, fromSize, jumpBackCode + index);
+		fix_reladdr(from, callCode + index, jumpBackCode + index);
 		index += fromSize;
 	}
 	// Push all registers
@@ -146,6 +146,7 @@ void Spelunky::inject_call(Address from, size_t fromSize, FunctionCall fncall, c
 	if (codeLocation == 1)
 	{
 		read_memory(from, fromSize, jumpBackCode + index);
+		fix_reladdr(from, callCode + index, jumpBackCode + index);
 		index += fromSize;
 	}
 	// Jump back
@@ -179,4 +180,15 @@ BYTE *call_code(Address from, Address to, BYTE *writeTo)
 	int diff = to - (from + 5);
 	memcpy(writeTo + 1, &diff, sizeof(int));
 	return writeTo;
+}
+
+BYTE *fix_reladdr(Address from, Address to, BYTE *code)
+{
+	if (code == nullptr || (code[0] != 0xE8 && code[0] != 0xE9))
+	{
+		return code;
+	}
+	int *reladdr = (int *)(code + 1);
+	*reladdr = *reladdr + (int)from - (int)to;
+	return code;
 }

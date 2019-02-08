@@ -21,16 +21,16 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Spelunky.h">
+    <ClInclude Include="basictools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RPGMod.h">
+    <ClInclude Include="spelunky.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EntityTypes.h">
+    <ClInclude Include="rpgmod.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="EnemyAI.h">
+    <ClInclude Include="enemyai.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -44,18 +44,21 @@
     <ClCompile Include="dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Spelunky.cpp">
+    <ClCompile Include="basictools.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="RPGMod.cpp">
+    <ClCompile Include="spelunky.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="EnemyAI.cpp">
+    <ClCompile Include="rpgmod.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="enemyai.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="AllEntities.txt">
+    <None Include="allentities.txt">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

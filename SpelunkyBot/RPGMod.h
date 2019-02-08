@@ -1,14 +1,12 @@
 #pragma once
 
 #include "stdafx.h"
-#include "EntityTypes.h"
+#include "basictools.h"
 
-enum stat_t;
-
-template<typename T = LPVOID>
-inline T &offset(LPVOID base, int os) { return *(T *)((BYTE *)base + os); }
 
 extern DLLExport void levelUp(stat_t);
+
+// Injected functions
 
 extern DLLExport void updateLoop(LPVOID);
 
@@ -31,11 +29,3 @@ extern DLLExport void changeEntities(LPVOID);
 extern DLLExport void collectItem(UINT);
 
 extern DLLExport void collectJelly();
-
-// Assembly-Integrated Functions
-
-extern DLLExport int spawnEntity(LPVOID, float, float, entity_t, char);
-
-extern DLLExport float *writeText(LPVOID, LPCWSTR, float, float, char, float);
-
-extern DLLExport void setTextColor(float *, int, int, int);

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "stdafx.h"
+
 typedef BYTE *Address;
 struct FunctionCall;
 
@@ -27,6 +29,7 @@ public:
 
 BYTE *jmp_code(Address, Address, BYTE *);
 BYTE *call_code(Address, Address, BYTE *);
+BYTE *fix_reladdr(Address, Address, BYTE *);
 
 struct FunctionCall
 {
