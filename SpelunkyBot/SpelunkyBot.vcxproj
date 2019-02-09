@@ -131,6 +131,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
+      <AdditionalDependencies>imagehlp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -153,6 +154,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="assembly.h" />
     <ClInclude Include="basictools.h" />
     <ClInclude Include="enemyai.h" />
     <ClInclude Include="rpgmod.h" />
@@ -161,6 +163,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="assembly.cpp" />
     <ClCompile Include="basictools.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="enemyai.cpp" />
@@ -176,6 +179,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="allentities.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="TODO.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

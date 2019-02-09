@@ -4,6 +4,13 @@
 
 DLLExport std::queue<LPCWSTR> debug::log = std::queue<LPCWSTR>();
 
+DLLExport void debug::print(LPCWSTR text)
+{
+	debug::log.push(text);
+	if (debug::log.size() > 10)
+		debug::log.pop();
+}
+
 DLLExport LPCWSTR getEntityName(entity_t eType)
 {
 	switch (eType)
@@ -89,11 +96,4 @@ DLLExport void setTextColor(float *colorPtr, int red, int green, int blue)
 	colorPtr[0] = red / 255.0f;
 	colorPtr[1] = green / 255.0f;
 	colorPtr[2] = blue / 255.0f;
-}
-
-DLLExport void debug::print(LPCWSTR text)
-{
-	debug::log.push(text);
-	if (debug::log.size() > 10)
-		debug::log.pop();
 }

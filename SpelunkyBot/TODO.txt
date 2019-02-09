@@ -1,0 +1,4 @@
+Find hooks for TextInputFramework
+Set up a "console" for in-game customization
+Create a controller struct to fix enemy control issues -- done, may break on respawn
+Add more possessible enemies

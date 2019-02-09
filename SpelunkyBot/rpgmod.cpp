@@ -89,14 +89,15 @@ DLLExport void updateLoop(LPVOID BASE)
 
 DLLExport void AIUpdate(LPVOID BASE, LPVOID entity)
 {
-	LPVOID controls = offset(entity, 0x15C);
-	if (player.possessed.timer == 0 || controls == nullptr)
-	{
-		return;
-	}
-
 	LPVOID gameBase = offset(BASE, 0x1384B4);
 	LPVOID plr = offset(gameBase, 0x440684);
+	static controller *controls = new controller(offset<spelunky::PINPUT>(plr, 0x224));
+	BYTE &isControlled = offset<BYTE>(entity, 0x15C);
+	if (player.possessed.timer == 0 || !isControlled)
+	{
+		isControlled = FALSE;
+		return;
+	}
 
 	// Make enemy harmless to player
 	offset<BYTE>(entity, 0x1F3) = 1;
@@ -107,14 +108,23 @@ DLLExport void AIUpdate(LPVOID BASE, LPVOID entity)
 	offset(offset(BASE, 0x138558), 0x30) = entity;
 	offset<INT>(plr, 0x27C) = 0;
 
+	// Check if entity is dead
+	if (offset<INT>(entity, 0x140) <= 0)
+	{
+		isControlled = FALSE;
+		offset(offset(BASE, 0x138558), 0x30) = plr;
+		return;
+	}
+
+	controls->update();
 	entity_t eType = offset<entity_t>(entity, 0x0C);
 
 	if (eType == SNAKE)
 	{
 		offset<FLOAT>(entity, 0x244) = 0.0f;
-		if (abs(offset<INT>(controls, 0x1C)) > 20)
+		if (abs(controls->x) > 20)
 		{
-			offset<BYTE>(entity, 0x9D) = offset<INT>(controls, 0x1C) < 0;
+			offset<BYTE>(entity, 0x9D) = controls->x < 0;
 		}
 	}
 
@@ -137,22 +147,22 @@ DLLExport void AIUpdate(LPVOID BASE, LPVOID entity)
 			offset(entity, 0x26C) = target;
 		}
 		// Move target based on controls
-		offset<FLOAT>(target, 0x30) = offset<FLOAT>(entity, 0x30) + 0.5f * offset<INT>(controls, 0x1C);
-		offset<FLOAT>(target, 0x34) = offset<FLOAT>(entity, 0x34) + 0.5f * offset<INT>(controls, 0x20);
+		offset<FLOAT>(target, 0x30) = offset<FLOAT>(entity, 0x30) + 0.5f * controls->x;
+		offset<FLOAT>(target, 0x34) = offset<FLOAT>(entity, 0x34) + 0.5f * controls->y;
 		// If spider, has jump
 		if (eType == SPIDER)
 		{
 			int &timer = offset<INT>(entity, 0x154);
 			timer = (timer > 30) ? 30 : (timer < 10) ? 10 : timer;
-			if (offset<BYTE>(controls, 0x00) && timer == 10)
+			if (controls->jump && timer == 10)
 			{
 				timer = 0;
 			}
-			if (offset<INT>(controls, 0x20) > 20 && offset<FLOAT>(entity, 0x248) > 0.199)
+			if (controls->y > 20 && offset<FLOAT>(entity, 0x248) > 0.199)
 			{
 				offset<FLOAT>(entity, 0x244) *= 0.5f;
 			}
-			if (offset<INT>(controls, 0x20) < -20 && offset<FLOAT>(entity, 0x248) > 0.199)
+			if (controls->y < -20 && offset<FLOAT>(entity, 0x248) > 0.199)
 			{
 				offset<FLOAT>(entity, 0x244) *= 1.3f;
 				offset<FLOAT>(entity, 0x248) *= 0.4f;
@@ -165,7 +175,7 @@ DLLExport void AIUpdate(LPVOID BASE, LPVOID entity)
 		}
 	}
 	// Explode if triggered
-	if (offset<BYTE>(controls, 0x01))
+	if (controls->bomb)
 	{
 		triggerExplosion(BASE, offset<FLOAT>(entity, 0x30), offset<FLOAT>(entity, 0x34), 0, BOMB);
 	}
