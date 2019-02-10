@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "basictools.h"
-
+#include "inputcapture.h"
 
 namespace tools
 {
@@ -8,11 +8,15 @@ namespace tools
 	address_t initTools()
 	{
 		using assembly::Injection;
+		using namespace controller;
+		using namespace keyboard;
 		using namespace registers;
 
+		static bool alreadyCalled = false;
 		// Create main loop
-		static address_t BASE = assembly::getAddress("Spelunky.exe");
-		static Injection mainLoop(&_mainUpdateLoop, BASE + 0xB2CA6, 5);
+		address_t BASE = assembly::getAddress("Spelunky.exe");
+		if (alreadyCalled) return BASE;
+		Injection mainLoop(&_mainUpdateLoop, BASE + 0xB2CA6, 5);
 		mainLoop.activate();
 
 		// Create debug input
@@ -20,14 +24,16 @@ namespace tools
 		addUpdateScript(&dev::updateGetInput);
 
 		// Activate controller input
-		controller.controls = offset(offsetM("Spelunky.exe", 0x1384B4), 0x40);
+		controls = offset(offsetM("Spelunky.exe", 0x1384B4), 0x40);
 		addUpdateScript(&updateController);
 
 		// Activate keyboard input
-		static address_t tiFramework = assembly::getAddress("TextInputFramework.dll") + 0xFA90;
-		static Injection keyEvent(&onKeyEvent, tiFramework + 0xE612, 5, 1, 1, EBP);
+		static address_t textFrmwk = assembly::getAddress("TextInputFramework.dll") + 0xFA90;
+		static Injection keyEvent(&onKeyEvent, textFrmwk + 0xE612, 5, 1, 1, EBP);
 		keyEvent.activate();
 		addUpdateScript(&updateKeyInput);
+
+		alreadyCalled = true;
 		return BASE;
 	}
 
@@ -199,6 +205,7 @@ namespace tools
 		{
 			using assembly::getAddress;
 			using assembly::Injection;
+			using namespace keyboard;
 
 			static bool consoleActive = false;
 			static Injection eloop(&stopEntityLoop, getAddress("Spelunky.exe") + 0x6B76C, 6, 0);
@@ -207,18 +214,18 @@ namespace tools
 			if (consoleActive)
 			{
 				// Process input
-				if (mkinput.key[0x0D])
+				if (pressed[0x0D])
 				{
 					println(consoleInput);
 					processInput(consoleInput);
 				}
 				// Delete input
-				if (mkinput.key[0x08] && consoleInputCursor > 0)
+				if (pressed[0x08] && consoleInputCursor > 0)
 				{
 					consoleInput[--consoleInputCursor] = 0;
 				}
 				// Cancel input
-				if (mkinput.key[0x0D] || mkinput.key[0x1B] || consoleInputCursor == 0)
+				if (pressed[0x0D] || pressed[0x1B] || consoleInputCursor == 0)
 				{
 					memset(consoleInput, 0, sizeof(consoleInput));
 					consoleInputCursor = 0;
@@ -228,20 +235,20 @@ namespace tools
 					return;
 				}
 				// Get input
-				if (mkinput.key[0x20] && consoleInputCursor < 80)
+				if (pressed[0x20] && consoleInputCursor < 80)
 				{
 					consoleInput[consoleInputCursor++] = L' ';
 				}
 				for (WCHAR chr = L'0'; chr <= L'9'; chr++)
 				{
-					if (mkinput.key[chr] && consoleInputCursor < 80)
+					if (pressed[chr] && consoleInputCursor < 80)
 					{
 						consoleInput[consoleInputCursor++] = chr;
 					}
 				}
 				for (WCHAR chr = L'A'; chr <= L'Z'; chr++)
 				{
-					if (mkinput.key[chr] && consoleInputCursor < 80)
+					if (pressed[chr] && consoleInputCursor < 80)
 					{
 						consoleInput[consoleInputCursor++] = chr;
 					}
@@ -249,7 +256,7 @@ namespace tools
 			}
 			else
 			{
-				if (mkinput.key[0xBF])
+				if (pressed[0xBF])
 				{
 					eloop.activate();
 					tloop.activate();
@@ -400,58 +407,5 @@ namespace tools
 			}
 		}
 		return false;
-	}
-
-	// Update Controller
-	_controller_t controller;
-	void updateController()
-	{
-		address_t controls = controller.controls;
-		auto &input = controller.input;
-		auto &previous = controller.previous;
-
-		controller.x = offset<int>(controls, 0x1C);
-		controller.y = offset<int>(controls, 0x20);
-
-		input.jump = offset<BYTE>(controls, 0x00) && !previous.jump;
-		input.bomb = offset<BYTE>(controls, 0x01) && !previous.bomb;
-		input.action = offset<BYTE>(controls, 0x02) && !previous.action;
-		input.rope = offset<BYTE>(controls, 0x03) && !previous.rope;
-		input.door = offset<BYTE>(controls, 0x05) && !previous.door;
-		input.run = offset<BYTE>(controls, 0x0D) && !previous.run;
-		input.pause = offset<BYTE>(controls, 0x10) && !previous.pause;
-		input.journal = offset<BYTE>(controls, 0x11) && !previous.journal;
-
-		previous.jump = offset<BYTE>(controls, 0x00);
-		previous.bomb = offset<BYTE>(controls, 0x01);
-		previous.action = offset<BYTE>(controls, 0x02);
-		previous.rope = offset<BYTE>(controls, 0x03);
-		previous.door = offset<BYTE>(controls, 0x05);
-		previous.run = offset<BYTE>(controls, 0x0D);
-		previous.pause = offset<BYTE>(controls, 0x10);
-		previous.journal = offset<BYTE>(controls, 0x11);
-	}
-
-	// Update key input
-	_mkinput_t mkinput;
-	void onKeyEvent(address_t stackptr)
-	{
-		BYTE key = offset<BYTE>(stackptr, 0x10);
-		BYTE pressed = offset<BYTE>(stackptr, 0x14);
-
-		if (pressed & 0x03)
-		{
-			mkinput.eventQueue.push(key);
-		}
-	}
-
-	void updateKeyInput()
-	{
-		memset(mkinput.key, FALSE, sizeof(mkinput.key));
-		while (!mkinput.eventQueue.empty())
-		{
-			mkinput.key[mkinput.eventQueue.front()] = TRUE;
-			mkinput.eventQueue.pop();
-		}
 	}
 }

@@ -1,13 +1,14 @@
 #include "stdafx.h"
 #include "enemycontrol.h"
 #include "basictools.h"
+#include "inputcapture.h"
 
 void AIUpdate(address_t entity)
 {
 	address_t gameBase = offsetM("Spelunky.exe", 0x1384B4);
 	address_t plr = offset(gameBase, 0x440684);
 
-	BYTE &isControlled = offset<BYTE>(entity, 0x15C);
+	BYTE isControlled = offset<BYTE>(entity, 0x15C);
 	if (!isControlled) return;
 
 	// Make enemy harmless to player
@@ -32,9 +33,9 @@ void AIUpdate(address_t entity)
 	if (eType == SNAKE)
 	{
 		offset<FLOAT>(entity, 0x244) = 0.0f;
-		if (abs(controller.x) > 20)
+		if (abs(controller::x) > 20)
 		{
-			offset<BYTE>(entity, 0x9D) = controller.x < 0;
+			offset<BYTE>(entity, 0x9D) = controller::x < 0;
 		}
 	}
 
@@ -57,22 +58,22 @@ void AIUpdate(address_t entity)
 			offset(entity, 0x26C) = target;
 		}
 		// Move target based on controls
-		offset<FLOAT>(target, 0x30) = offset<FLOAT>(entity, 0x30) + 0.5f * controller.x;
-		offset<FLOAT>(target, 0x34) = offset<FLOAT>(entity, 0x34) + 0.5f * controller.y;
+		offset<FLOAT>(target, 0x30) = offset<FLOAT>(entity, 0x30) + 0.5f * controller::x;
+		offset<FLOAT>(target, 0x34) = offset<FLOAT>(entity, 0x34) + 0.5f * controller::y;
 		// If spider, has jump
 		if (eType == SPIDER)
 		{
 			int &timer = offset<INT>(entity, 0x154);
 			timer = (timer > 30) ? 30 : (timer < 10) ? 10 : timer;
-			if (controller.input.jump && timer == 10)
+			if (controller::jump && timer == 10)
 			{
 				timer = 0;
 			}
-			if (controller.y > 20 && offset<FLOAT>(entity, 0x248) > 0.199)
+			if (controller::y > 20 && offset<FLOAT>(entity, 0x248) > 0.199)
 			{
 				offset<FLOAT>(entity, 0x244) *= 0.5f;
 			}
-			if (controller.y < -20 && offset<FLOAT>(entity, 0x248) > 0.199)
+			if (controller::y < -20 && offset<FLOAT>(entity, 0x248) > 0.199)
 			{
 				offset<FLOAT>(entity, 0x244) *= 1.3f;
 				offset<FLOAT>(entity, 0x248) *= 0.4f;
@@ -85,7 +86,7 @@ void AIUpdate(address_t entity)
 		}
 	}
 	// Explode if triggered
-	if (controller.input.bomb)
+	if (controller::bomb)
 	{
 		triggerExplosion(offset<FLOAT>(entity, 0x30), offset<FLOAT>(entity, 0x34), 0, BOMB);
 	}

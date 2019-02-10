@@ -7,6 +7,8 @@ namespace tools
 {
 	using std::list;
 	using assembly::address_t;
+	using assembly::offset;
+	using assembly::offsetM;
 	using assembly::Injection;
 	using assembly::LPInjection;
 
@@ -14,19 +16,6 @@ namespace tools
 
 	// Initiates the toolset
 	address_t initTools();
-
-	// Gives offset from address or module
-	template<typename T = address_t, typename B>
-	T &offset(B base, int offset)
-	{
-		return *(T *)((address_t)base + offset);
-	}
-	template<typename T = address_t>
-	T &offsetM(LPCSTR base, int offset)
-	{
-		address_t moduleAddress = assembly::getAddress(base);
-		return *(T *)(moduleAddress + offset);
-	}
 
 	// Easier register access
 	namespace registers
@@ -110,29 +99,4 @@ namespace tools
 	void loadMod(Mod *);
 	bool activateMod(LPCWSTR);
 	bool deactivateMod(LPCWSTR);
-
-	// Controller input
-	struct _controller_t
-	{
-		address_t controls;
-		struct
-		{
-			BYTE jump, bomb, action, rope, door, run, pause, journal;
-		} input, previous;
-		int x, y;
-	};
-	extern _controller_t controller;
-
-	void updateController();
-	
-	// Keyboard input
-	struct _mkinput_t
-	{
-		BYTE key[256];
-		std::queue<BYTE> eventQueue;
-	};
-	extern _mkinput_t mkinput;
-
-	void onKeyEvent(address_t);
-	void updateKeyInput();
 }
