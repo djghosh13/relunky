@@ -13,6 +13,17 @@ namespace tools
 	using assembly::LPInjection;
 
 	typedef void(*script_t)();
+	struct command_t
+	{
+		std::wstring name;
+		void(*command)(list<LPCWSTR>);
+		LPCWSTR docstring = NULL;
+
+		inline bool operator==(command_t other)
+		{
+			return name == other.name && command == other.command;
+		}
+	};
 
 	// Initiates the toolset
 	address_t initTools();
@@ -68,35 +79,13 @@ namespace tools
 	// Developer tools
 	namespace dev
 	{
-		extern list<LPCWSTR> consoleOutput;
-		extern WCHAR consoleInput[80];
-		extern size_t consoleInputCursor;
-		extern size_t consoleDisplayTimer;
+		extern list<command_t> validCommands;
+
+		void registerCommand(command_t);
+		void unregisterCommand(command_t);
 		void println(LPCWSTR, ...);
 		void updateDevConsole();
 		void updateGetInput();
 		void processInput(LPCWSTR);
 	}
-
-	// Load/Unload Mods
-	class Mod
-	{
-		std::wstring name;
-		list<script_t> scripts;
-		list<LPInjection> injections;
-		bool active = false;
-	public:
-		Mod(LPCWSTR, size_t, size_t, ...);
-		inline LPCWSTR getName() { return name.c_str(); }
-		inline bool isActive() { return active; }
-		bool operator==(LPCWSTR);
-		void activate();
-		void deactivate();
-	};
-
-	extern list<Mod *> loadedMods;
-
-	void loadMod(Mod *);
-	bool activateMod(LPCWSTR);
-	bool deactivateMod(LPCWSTR);
 }

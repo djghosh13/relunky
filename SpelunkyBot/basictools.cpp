@@ -150,10 +150,30 @@ namespace tools
 	// Developer tools
 	namespace dev
 	{
-		list<LPCWSTR> consoleOutput = list<LPCWSTR>();
-		WCHAR consoleInput[80];
-		size_t consoleInputCursor = 0;
-		size_t consoleDisplayTimer = 0;
+		static list<LPCWSTR> consoleOutput = list<LPCWSTR>();
+		static WCHAR consoleInput[80];
+		static size_t consoleInputCursor = 0;
+		static size_t consoleDisplayTimer = 0;
+
+		list<command_t> validCommands = list<command_t>();
+
+		void registerCommand(command_t cmd)
+		{
+			for (auto it = validCommands.begin(); it != validCommands.end(); ++it)
+			{
+				if (it->name == cmd.name)
+				{
+					// Do not overwrite existing commands
+					return;
+				}
+			}
+			validCommands.push_back(cmd);
+		}
+
+		void unregisterCommand(command_t cmd)
+		{
+			validCommands.remove(cmd);
+		}
 
 		void println(LPCWSTR text, ...)
 		{
@@ -164,7 +184,7 @@ namespace tools
 			va_end(args);
 
 			consoleOutput.push_front(buffer);
-			if (consoleOutput.size() > 16)
+			if (consoleOutput.size() > 15)
 			{
 				consoleOutput.pop_back();
 			}
@@ -268,144 +288,34 @@ namespace tools
 
 		void processInput(LPCWSTR input)
 		{
-			std::wstring sInput(input + 1);
-			size_t cmdLen = sInput.find_first_of(L' ');
-			std::wstring command = sInput.substr(0, cmdLen);
-			std::wstring param;
-			if (cmdLen == sInput.npos)
+			LPWSTR tokens = new WCHAR[BUFSIZ];
+			lstrcpyW(tokens, input + 1);
+			LPWSTR nextToken = NULL;
+			LPWSTR token = wcstok_s(tokens, L" ", &nextToken);
+			if (token == nullptr) return;
+
+			std::wstring command = token;
+			list<LPCWSTR> args = list<LPCWSTR>();
+
+			while (token != nullptr)
 			{
-				param = L"";
-			}
-			else
-			{
-				param = sInput.substr(command.length() + 1);
-			}
-			// Cases
-			if (command == L"HELP")
-			{
-				println(L"Currently supported commands:");
-				println(L"ENABLE <MOD NAME>");
-				println(L"DISABLE <MOD NAME>");
-				println(L"SHOW");
-			}
-			else if (command == L"ENABLE")
-			{
-				bool found = activateMod(param.c_str());
-				if (found)
+				token = wcstok_s(NULL, L" ", &nextToken);
+				if (token != nullptr)
 				{
-					println(L"Enabled mod: %s", param.c_str());
-				}
-				else
-				{
-					println(L"Could not locate mod: %s", param.c_str());
+					args.push_back(token);
 				}
 			}
-			else if (command == L"DISABLE")
+
+			// Run command
+			for (auto it = validCommands.begin(); it != validCommands.end(); ++it)
 			{
-				bool found = deactivateMod(param.c_str());
-				if (found)
+				if (it->name == command)
 				{
-					println(L"Disabled mod: %s", param.c_str());
-				}
-				else
-				{
-					println(L"Could not locate mod: %s", param.c_str());
+					it->command(args);
+					return;
 				}
 			}
-			else if (command == L"SHOW")
-			{
-				println(L"Installed mods:");
-				for (auto it = loadedMods.begin(); it != loadedMods.end(); ++it)
-				{
-					println(L"%s: %s", (*it)->getName(), (*it)->isActive() ? L"ON" : L"OFF");
-				}
-			}
-			else
-			{
-				println(L"Command not recognized: %s", command.c_str());
-			}
+			println(L"Command not recognized: %s", command.c_str());
 		}
-	}
-
-	// Mod Loading
-	Mod::Mod(LPCWSTR name, size_t nScripts, size_t nInjections, ...) : name(name)
-	{
-		va_list args;
-		va_start(args, nInjections);
-		for (size_t i = 0; i < nScripts; i++)
-		{
-			scripts.push_back(va_arg(args, script_t));
-		}
-		for (size_t i = 0; i < nInjections; i++)
-		{
-			injections.push_back(va_arg(args, LPInjection));
-		}
-		va_end(args);
-	}
-
-	bool Mod::operator==(LPCWSTR term)
-	{
-		return name == term;
-	}
-
-	void Mod::activate()
-	{
-		if (active) return;
-		for (auto it = scripts.begin(); it != scripts.end(); ++it)
-		{
-			addUpdateScript(*it);
-		}
-		for (auto it = injections.begin(); it != injections.end(); ++it)
-		{
-			(*it)->activate();
-		}
-		active = true;
-	}
-
-	void Mod::deactivate()
-	{
-		if (!active) return;
-		for (auto it = scripts.begin(); it != scripts.end(); ++it)
-		{
-			removeUpdateScript(*it);
-		}
-		for (auto it = injections.begin(); it != injections.end(); ++it)
-		{
-			(*it)->deactivate();
-		}
-		active = false;
-	}
-
-	list<Mod *> loadedMods = list<Mod *>();
-
-	void loadMod(Mod *mod)
-	{
-		loadedMods.push_back(mod);
-	}
-
-	bool activateMod(LPCWSTR name)
-	{
-		for (auto it = loadedMods.begin(); it != loadedMods.end(); ++it)
-		{
-			if (**it == name)
-			{
-				(*it)->activate();
-				return true;
-			}
-		}
-		return false;
-	}
-
-	bool deactivateMod(LPCWSTR name)
-	{
-		for (auto it = loadedMods.begin(); it != loadedMods.end(); ++it)
-		{
-			if (**it == name)
-			{
-				(*it)->deactivate();
-				return true;
-			}
-		}
-		return false;
 	}
 }

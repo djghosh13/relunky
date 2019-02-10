@@ -8,13 +8,13 @@ void AIUpdate(address_t entity)
 	address_t gameBase = offsetM("Spelunky.exe", 0x1384B4);
 	address_t plr = offset(gameBase, 0x440684);
 
-	BYTE isControlled = offset<BYTE>(entity, 0x15C);
+	BYTE &isControlled = offset<BYTE>(entity, 0x15C);
 	if (!isControlled) return;
 
 	// Make enemy harmless to player
-	offset<BYTE>(entity, 0x1F3) = 1;
+	offset<BYTE>(entity, 0x1F3) = TRUE;
 	// Stun player
-	offset<BYTE>(plr, 0x211) = 1;
+	offset<BYTE>(plr, 0x211) = TRUE;
 	offset<INT>(plr, 0x184) = 6;
 	// Set camera target and remove offscreen timer
 	offset(offsetM("Spelunky.exe", 0x138558), 0x30) = entity;
@@ -89,5 +89,72 @@ void AIUpdate(address_t entity)
 	if (controller::bomb)
 	{
 		triggerExplosion(offset<FLOAT>(entity, 0x30), offset<FLOAT>(entity, 0x34), 0, BOMB);
+	}
+}
+
+void possessNearestEnemy(list<LPCWSTR> args)
+{
+	address_t gameBase = offsetM("Spelunky.exe", 0x1384B4);
+	address_t plr = offset(gameBase, 0x440684);
+
+	if (offset<BYTE>(plr, 0x211)) return;
+
+	address_t *entities = offset<address_t *>(gameBase, 0x30);
+	address_t nearest = NULL;
+	float nearestDist = 0.0;
+	address_t entity = NULL;
+
+	for (size_t i = 0; i < offset<size_t>(entities, 0x7810); i++)
+	{
+		entity = entities[i];
+		float dx = offset<float>(entity, 0x30) - offset<float>(plr, 0x30);
+		float dy = offset<float>(entity, 0x34) - offset<float>(plr, 0x34);
+		float dist = sqrtf(dx * dx + dy * dy);
+
+		if (offset<UINT>(entity, 0x08) == 3 && (nearest == NULL || dist < nearestDist))
+		{
+			nearest = entity;
+			nearestDist = dist;
+		}
+	}
+
+	if (nearest == nullptr)
+	{
+		dev::println(L"Could not find any enemies nearby");
+	}
+	else
+	{
+		dev::println(L"Possessing nearby %s", getEntityName(offset<entity_t>(nearest, 0x0C)));
+		offset<BYTE>(nearest, 0x15C) = TRUE;
+	}
+}
+
+void releaseAllEnemies(list<LPCWSTR> args)
+{
+	address_t gameBase = offsetM("Spelunky.exe", 0x1384B4);
+	address_t plr = offset(gameBase, 0x440684);
+	address_t *entities = offset<address_t *>(gameBase, 0x30);
+	address_t entity = NULL;
+	offset(offsetM("Spelunky.exe", 0x138558), 0x30) = plr;
+	long numReleased = 0;
+
+	for (size_t i = 0; i < offset<size_t>(entities, 0x7810); i++)
+	{
+		entity = entities[i];
+
+		if (offset<UINT>(entity, 0x08) == 3 && offset<BYTE>(entity, 0x15C))
+		{
+			offset<BYTE>(entity, 0x15C) = FALSE;
+			numReleased++;
+		}
+	}
+
+	if (numReleased == 0)
+	{
+		dev::println(L"No enemies currently possessed");
+	}
+	else
+	{
+		dev::println(L"Released control of %ld enemies", numReleased);
 	}
 }

@@ -5,3 +5,7 @@
 using namespace tools;
 
 void AIUpdate(address_t);
+
+void possessNearestEnemy(list<LPCWSTR>);
+
+void releaseAllEnemies(list<LPCWSTR>);

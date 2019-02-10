@@ -159,6 +159,7 @@
     <ClInclude Include="enemyai.h" />
     <ClInclude Include="enemycontrol.h" />
     <ClInclude Include="inputcapture.h" />
+    <ClInclude Include="modloader.h" />
     <ClInclude Include="rpgmod.h" />
     <ClInclude Include="spelunky.h" />
     <ClInclude Include="stdafx.h" />
@@ -171,6 +172,7 @@
     <ClCompile Include="enemyai.cpp" />
     <ClCompile Include="enemycontrol.cpp" />
     <ClCompile Include="inputcapture.cpp" />
+    <ClCompile Include="modloader.cpp" />
     <ClCompile Include="rpgmod.cpp" />
     <ClCompile Include="spelunky.cpp" />
     <ClCompile Include="SpelunkyBot.cpp" />
