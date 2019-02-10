@@ -3,29 +3,37 @@
 #include "stdafx.h"
 #include "basictools.h"
 
+using namespace tools;
 
-extern DLLExport void levelUp(stat_t);
+enum stat_t
+{
+	CON, STR, DEX, MAG, CHR, PER
+};
+
+void levelUp(stat_t);
 
 // Injected functions
 
-extern DLLExport void updateLoop(LPVOID);
+void updateLoop();
 
-extern DLLExport void AIUpdate(LPVOID, LPVOID);
+// Actual RPG stuff
 
-extern DLLExport void onDamage(LPVOID, LPVOID, int);
+void updateRPGText();
 
-extern DLLExport void collectGem(LPVOID, LPVOID);
+void onDamage(address_t, int);
 
-extern DLLExport void onKillEnemy(entity_t);
+void collectGem(address_t, address_t);
 
-extern DLLExport void onReset(UINT);
+void onKillEnemy(entity_t);
 
-extern DLLExport void entitySpawn(LPVOID);
+void onReset(address_t);
 
-extern DLLExport void setTiles(LPVOID, LPVOID);
+void entitySpawn(address_t);
 
-extern DLLExport void changeEntities(LPVOID);
+void setTiles(address_t);
 
-extern DLLExport void collectItem(UINT);
+void changeEntities();
 
-extern DLLExport void collectJelly();
+void collectItem(entity_t);
+
+void collectJelly();

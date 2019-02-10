@@ -20,7 +20,7 @@ namespace assembly
 			if (hModule == NULL) throw 1;
 			MODULEINFO mInfo;
 			GetModuleInformation(process, hModule, &mInfo, sizeof(mInfo));
-			foundRegions.at(mName) = (address_t)mInfo.lpBaseOfDll;
+			foundRegions[mName] = (address_t)mInfo.lpBaseOfDll;
 			return (address_t)mInfo.lpBaseOfDll;
 		}
 	}
@@ -82,17 +82,41 @@ namespace assembly
 		return opCode;
 	}
 	// Injections
-	Injection::Injection(address_t fLoc,
+	Injection::Injection(LPVOID fLoc,
 		address_t srcLoc,
 		size_t sLen,
+		int reloc,
 		size_t nArgs,
-		register_t *args,
-		int reloc
-	) : functionLocation(fLoc),
+		...
+	) : functionLocation((address_t)fLoc),
 		srcLocation(srcLoc),
 		srcLength(sLen),
 		nArgs(nArgs),
-		args(args),
+		relocation(reloc)
+	{
+		if (sLen < 5) throw 1;
+		originalCode = new BYTE[srcLength];
+		memcpy(originalCode, srcLocation, srcLength);
+		// Get all arguments
+		args = new register_t[nArgs];
+		va_list rargs;
+		va_start(rargs, nArgs);
+		for (size_t i = 0; i < nArgs; i++)
+		{
+			args[i] = va_arg(rargs, register_t);
+		}
+		va_end(rargs);
+	}
+
+	Injection::Injection(LPVOID fLoc,
+		address_t srcLoc,
+		size_t sLen,
+		int reloc
+	) : functionLocation((address_t)fLoc),
+		srcLocation(srcLoc),
+		srcLength(sLen),
+		nArgs(0),
+		args(NULL),
 		relocation(reloc)
 	{
 		if (sLen < 5) throw 1;
@@ -103,6 +127,7 @@ namespace assembly
 	void Injection::activate()
 	{
 		if (active) return;
+		active = true;
 		if (injectionLocation == nullptr)
 		{
 			// Allocate and generate a function call
@@ -156,6 +181,7 @@ namespace assembly
 	void Injection::deactivate()
 	{
 		if (!active) return;
+		active = false;
 		writeMemory(srcLocation, srcLength, originalCode);
 	}
 }

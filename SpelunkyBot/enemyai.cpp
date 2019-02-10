@@ -2,13 +2,15 @@
 #include "enemyai.h"
 #include "basictools.h"
 
+using namespace tools;
+
 typedef struct _extraInfoSnake {
 	UINT CHECK = 1001;
 	int dashTimer = 0;
 	int dashCooldown = 0;
 } extraInfoSnake, *pExtraInfoSnake;
 
-DLLExport void snakeAI(LPVOID BASE, LPVOID entity)
+void snakeAI(address_t entity)
 {
 	pExtraInfoSnake &info = offset<pExtraInfoSnake>(entity, 0x28);
 	// Exit if dead
@@ -18,7 +20,7 @@ DLLExport void snakeAI(LPVOID BASE, LPVOID entity)
 		return;
 	}
 	//
-	if (info < BASE || info->CHECK != 1001)
+	if (info == nullptr || info->CHECK != 1001)
 	{
 		info = new extraInfoSnake;
 	}
@@ -35,7 +37,7 @@ DLLExport void snakeAI(LPVOID BASE, LPVOID entity)
 	{
 		float chance = 0.1f / 60;
 
-		LPVOID plr = offset(offset(BASE, 0x1384B4), 0x440684);
+		address_t plr = offset(offsetM("Spelunky.exe", 0x1384B4), 0x440684);
 		if (plr != nullptr)
 		{
 			float xdiff = offset<FLOAT>(plr, 0x30) - offset<FLOAT>(entity, 0x30);

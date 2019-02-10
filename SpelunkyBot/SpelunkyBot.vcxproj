@@ -157,6 +157,7 @@
     <ClInclude Include="assembly.h" />
     <ClInclude Include="basictools.h" />
     <ClInclude Include="enemyai.h" />
+    <ClInclude Include="enemycontrol.h" />
     <ClInclude Include="rpgmod.h" />
     <ClInclude Include="spelunky.h" />
     <ClInclude Include="stdafx.h" />
@@ -167,6 +168,7 @@
     <ClCompile Include="basictools.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="enemyai.cpp" />
+    <ClCompile Include="enemycontrol.cpp" />
     <ClCompile Include="rpgmod.cpp" />
     <ClCompile Include="spelunky.cpp" />
     <ClCompile Include="SpelunkyBot.cpp" />

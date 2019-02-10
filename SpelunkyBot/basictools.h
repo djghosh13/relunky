@@ -1,85 +1,138 @@
 #pragma once
 
 #include "stdafx.h"
+#include "assembly.h"
 
-namespace debug
+namespace tools
 {
-	extern DLLExport std::queue<LPCWSTR> log;
-	extern DLLExport void print(LPCWSTR);
-}
+	using std::list;
+	using assembly::address_t;
+	using assembly::Injection;
+	using assembly::LPInjection;
 
-enum stat_t
-{
-	CON, STR, DEX, MAG, CHR, PER
-};
+	typedef void(*script_t)();
 
-enum entity_t
-{
-#define X(name, str, id) name = id,
-#include "AllEntities.txt"
-#undef X
-	UNKNOWN
-};
+	// Initiates the toolset
+	address_t initTools();
 
-namespace spelunky
-{
-#pragma pack (push, 1)
-	typedef struct _INPUT
+	// Gives offset from address or module
+	template<typename T = address_t, typename B>
+	T &offset(B base, int offset)
 	{
-		BYTE jump, bomb, action, rope;
-		BYTE unusedLB, door;
-		SHORT __0x06;
-		INT __0x08;
-		BYTE unusedLT, run;
-		SHORT __0x0E;
-		BYTE pause, journal;
-		SHORT __0x12;
-		INT __0x14, __0x18;
-		INT movex, movey;
-	} INPUT, *PINPUT;
-#pragma pack (pop)
-}
-
-struct controller
-{
-	spelunky::PINPUT inputs;
-	spelunky::INPUT prevInputs;
-	BYTE jump, bomb, action, rope, door, run, pause, journal;
-	INT x, y;
-
-	controller(spelunky::PINPUT inputs) : inputs(inputs), prevInputs(*inputs) { }
-
-	void update()
-	{
-		x = inputs->movex;
-		y = inputs->movey;
-		jump = inputs->jump && !prevInputs.jump;
-		bomb = inputs->bomb && !prevInputs.bomb;
-		action = inputs->action && !prevInputs.action;
-		rope = inputs->rope && !prevInputs.rope;
-		door = inputs->door && !prevInputs.door;
-		run = inputs->run && !prevInputs.run;
-		pause = inputs->pause && !prevInputs.pause;
-		journal = inputs->journal && !prevInputs.journal;
-
-		prevInputs = *inputs;
+		return *(T *)((address_t)base + offset);
 	}
-};
+	template<typename T = address_t>
+	T &offsetM(LPCSTR base, int offset)
+	{
+		address_t moduleAddress = assembly::getAddress(base);
+		return *(T *)(moduleAddress + offset);
+	}
 
-template<typename T = LPVOID>
-DLLExport T &offset(LPVOID base, int offset)
-{
-	return *(T *)((BYTE *)base + offset);
+	// Easier register access
+	namespace registers
+	{
+		using assembly::register_t;
+		using assembly::EAX;
+		using assembly::ECX;
+		using assembly::EDX;
+		using assembly::EBX;
+		using assembly::ESP;
+		using assembly::EBP;
+		using assembly::ESI;
+		using assembly::EDI;
+	}
+
+	// Defines entity types
+	enum entity_t : UINT
+	{
+#define X(name, str, id) name = id,
+#include "allentities.txt"
+#undef X
+		UNKNOWN
+	};
+
+	inline LPCWSTR getEntityName(entity_t eType)
+	{
+		switch (eType)
+		{
+#define X(name, str, id) case id: return str;
+#include "allentities.txt"
+#undef X
+		default: return L" ";
+		}
+	}
+
+	// Affects main update loop
+	extern list<script_t> updateScripts;
+	void addUpdateScript(script_t);
+	void removeUpdateScript(script_t);
+	void _mainUpdateLoop();
+
+	// Scripts that call in-game methods
+	address_t spawnEntity(float, float, entity_t, char);
+
+	void triggerExplosion(float, float, UINT, entity_t);
+
+	void writeText(LPCWSTR, float, float, char, float);
+	void writeText(LPCWSTR, float, float, char, float, int, int, int);
+
+	// Developer tools
+	namespace dev
+	{
+		extern list<LPCWSTR> consoleOutput;
+		extern WCHAR consoleInput[80];
+		extern size_t consoleInputCursor;
+		extern size_t consoleDisplayTimer;
+		void println(LPCWSTR, ...);
+		void updateDevConsole();
+		void updateGetInput();
+		void processInput(LPCWSTR);
+	}
+
+	// Load/Unload Mods
+	class Mod
+	{
+		std::wstring name;
+		list<script_t> scripts;
+		list<LPInjection> injections;
+		bool active = false;
+	public:
+		Mod(LPCWSTR, size_t, size_t, ...);
+		inline LPCWSTR getName() { return name.c_str(); }
+		inline bool isActive() { return active; }
+		bool operator==(LPCWSTR);
+		void activate();
+		void deactivate();
+	};
+
+	extern list<Mod *> loadedMods;
+
+	void loadMod(Mod *);
+	bool activateMod(LPCWSTR);
+	bool deactivateMod(LPCWSTR);
+
+	// Controller input
+	struct _controller_t
+	{
+		address_t controls;
+		struct
+		{
+			BYTE jump, bomb, action, rope, door, run, pause, journal;
+		} input, previous;
+		int x, y;
+	};
+	extern _controller_t controller;
+
+	void updateController();
+	
+	// Keyboard input
+	struct _mkinput_t
+	{
+		BYTE key[256];
+		std::queue<BYTE> eventQueue;
+	};
+	extern _mkinput_t mkinput;
+
+	void onKeyEvent(address_t);
+	void updateKeyInput();
 }
-
-extern DLLExport LPCWSTR getEntityName(entity_t);
-
-extern DLLExport LPVOID spawnEntity(LPVOID, float, float, entity_t, char);
-
-extern DLLExport void triggerExplosion(LPVOID, float, float, UINT, entity_t);
-
-// Writing methods
-
-extern DLLExport float *writeText(LPVOID, LPCWSTR, float, float, char, float);
-
-extern DLLExport void setTextColor(float *, int, int, int);

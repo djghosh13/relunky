@@ -5,19 +5,24 @@
 namespace assembly
 {
 	typedef BYTE *address_t, *buffer_t;
+
 	// Current process
 	extern const HANDLE process;
+
 	// Hooks
 	extern std::map<std::string, address_t> foundRegions;
 	address_t getAddress(LPCSTR);
+
 	// Memory Access
 	buffer_t readMemory(address_t, size_t, buffer_t);
 	void writeMemory(address_t, size_t, buffer_t, bool);
 	address_t allocMemory(size_t);
+
 	// Opcode generation
 	buffer_t jumpOpCode(address_t, address_t, buffer_t);
 	buffer_t callOpCode(address_t, address_t, buffer_t);
 	buffer_t fixOpCode(address_t, address_t, buffer_t);
+
 	// Injections
 	enum register_t : UINT
 	{
@@ -35,7 +40,8 @@ namespace assembly
 		address_t injectionLocation = NULL;
 		buffer_t originalCode;
 	public:
-		Injection(address_t, address_t, size_t, size_t, register_t *, int);
+		Injection(LPVOID, address_t, size_t, int, size_t, ...);
+		Injection(LPVOID, address_t, size_t, int = 1);
 		inline bool isActive() { return active; }
 		void activate();
 		void deactivate();
